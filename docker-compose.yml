@@ -1,24 +1,31 @@
 services:
-
+#lazy solution for awg2 installed with awg2 native client
   amneziawg-exporter:
-    image: amneziavpn/amneziawg-exporter:latest
+    image: verubtsov/amneziawg-exporter:latest
     build: .
     container_name: amneziawg-exporter
-    hostname: amneziawg-exporter
+    restart: unless-stopped
     volumes:
-      - /usr/bin/awg:/usr/bin/awg
+      - /usr/local/bin/awg:/usr/bin/awg
     environment:
-      AWG_EXPORTER_REDIS_HOST: amneziawg-exporter-redis
-    ports:
-      - 9351:9351
+      AWG_EXPORTER_REDIS_HOST: 127.0.0.1
+      AWG_EXPORTER_INTERFACE: awg0
+    privileged: true
+    network_mode: "container:amnezia-awg2"
 
   amneziawg-exporter-redis:
     image: redis:alpine
     container_name: amneziawg-exporter-redis
-    restart: always
+    restart: unless-stopped
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
       - ./redis.conf:/etc/redis/redis.conf
       - ./redis-data:/data
-    ports:
-      - "6379:6379"
+    network_mode: "container:amnezia-awg2"
+
+  socat-awg:
+    image: alpine/socat
+    container_name: socat-awg
+    restart: unless-stopped
+    command: TCP-LISTEN:9351,fork,reuseaddr TCP:172.17.0.2:9351  # IP amnezia-awg2
+    network_mode: host
