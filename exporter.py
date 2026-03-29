@@ -209,8 +209,13 @@ class AwgShowWrapper:
         peers = []
         for line in lines:
             parts = line.split()
-            if len(parts) >= 6:
-                peers.append({'peer': parts[4], 'latest_handshake': parts[5]})
+            if len(parts) >= 8:
+                peers.append({
+                    'peer': parts[4],
+                    'latest_handshake': parts[5],
+                    'transfer_rx': int(parts[6]),
+                    'transfer_tx': int(parts[7]),
+                })
         return peers
 
     @staticmethod
@@ -261,6 +266,13 @@ class Exporter:
             'mau_abs': Gauge('awg_mau_abs', 'Absolute Monthly Active Users', ['month'] + labels, registry=self.registry),
             'status': Gauge('awg_status', 'Exporter status', labels, registry=self.registry)
         }
+        self.peer_metrics = {
+            'peer_rx_bytes':       Gauge('awg_peer_rx_bytes', 'Bytes received from peer', ['peer'] + labels, registry=self.registry),
+            'peer_tx_bytes':       Gauge('awg_peer_tx_bytes', 'Bytes sent to peer', ['peer'] + labels, registry=self.registry),
+            'peer_last_handshake': Gauge('awg_peer_last_handshake_seconds', 'Last handshake Unix timestamp', ['peer'] + labels, registry=self.registry),
+            'total_rx_bytes':      Gauge('awg_total_rx_bytes', 'Total bytes received from all peers', labels, registry=self.registry),
+            'total_tx_bytes':      Gauge('awg_total_tx_bytes', 'Total bytes sent to all peers', labels, registry=self.registry),
+        }
         self.log.info("Exporter initialized")
 
     def set_metric(self, name):
@@ -291,6 +303,18 @@ class Exporter:
         for peer in peers:
             if peer.get('latest_handshake') != '0':
                 self.storage.update_peer(peer['peer'], peer['latest_handshake'])
+            lbl = {'peer': peer['peer'], **self.config.extra_labels} if self.has_labels else {'peer': peer['peer']}
+            self.peer_metrics['peer_rx_bytes'].labels(**lbl).set(peer['transfer_rx'])
+            self.peer_metrics['peer_tx_bytes'].labels(**lbl).set(peer['transfer_tx'])
+            self.peer_metrics['peer_last_handshake'].labels(**lbl).set(int(peer['latest_handshake']))
+        total_rx = sum(p['transfer_rx'] for p in peers)
+        total_tx = sum(p['transfer_tx'] for p in peers)
+        if self.has_labels:
+            self.peer_metrics['total_rx_bytes'].labels(**self.config.extra_labels).set(total_rx)
+            self.peer_metrics['total_tx_bytes'].labels(**self.config.extra_labels).set(total_tx)
+        else:
+            self.peer_metrics['total_rx_bytes'].set(total_rx)
+            self.peer_metrics['total_tx_bytes'].set(total_tx)
         self.storage.recalculate()
         for metric in self.metrics.keys():
             self.set_metric(metric)
