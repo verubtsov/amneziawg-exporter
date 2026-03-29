@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 RUN apt-get update && \
-    apt-get install python3-pip -y && \
+    apt-get install python3-pip musl-tools -y && \
     rm -rf /var/lib/apt/lists/* && \
     pip3 install --no-cache-dir --break-system-packages \
     prometheus_client==0.20.0 \
