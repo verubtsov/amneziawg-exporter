@@ -1,7 +1,7 @@
 ![License](https://img.shields.io/github/license/amnezia-vpn/amneziawg-exporter)
-![Docker Latest Version](https://img.shields.io/docker/v/amneziavpn/amneziawg-exporter)
-![Docker Image Size](https://img.shields.io/docker/image-size/amneziavpn/amneziawg-exporter)
-![Docker Pulls](https://img.shields.io/docker/pulls/amneziavpn/amneziawg-exporter)
+![Docker Latest Version](https://img.shields.io/docker/v/verubtsov/amneziawg-exporter)
+![Docker Image Size](https://img.shields.io/docker/image-size/verubtsov/amneziawg-exporter)
+![Docker Pulls](https://img.shields.io/docker/pulls/verubtsov/amneziawg-exporter)
 
 # AmneziaWG exporter
 
@@ -60,7 +60,7 @@ All metrics support additional dynamic labels configured via `AWG_EXPORTER_LABEL
 
 ## Docker image
 
-The Docker image is built using the [Dockerfile](Dockerfile) available in this repository. You can easily obtain it from [DockerHub](https://hub.docker.com/r/amneziavpn/amneziawg-exporter) by running the command `docker pull amneziavpn/amneziawg-exporter.`
+The Docker image is built using the [Dockerfile](Dockerfile) available in this repository. You can easily obtain it from [DockerHub](https://hub.docker.com/r/verubtsov/amneziawg-exporter) by running the command `docker pull verubtsov/amneziawg-exporter.`
 
 
 ## Example usage
@@ -75,7 +75,7 @@ You can use example [docker-compose.yml](docker-compose.yml) with Docker Compose
  ✔ Container amneziawg-exporter        Started          0.1s
 # docker compose ps
 NAME                 IMAGE                                          COMMAND                         SERVICE              CREATED          STATUS          PORTS
-amneziawg-exporter         amneziavpn/amneziawg-exporter:latest   "/exporter.py"           amneziawg-exporter         15 seconds ago   Up 14 seconds   0.0.0.0:9351->9351/tcp, :::9351->9351/tcp
+amneziawg-exporter         verubtsov/amneziawg-exporter:latest   "/exporter.py"           amneziawg-exporter         15 seconds ago   Up 14 seconds   0.0.0.0:9351->9351/tcp, :::9351->9351/tcp
 amneziawg-exporter-redis   redis:alpine                           "docker-entrypoint.s…"   amneziawg-exporter-redis   15 seconds ago   Up 14 seconds   6379/tcp
 ```
 
