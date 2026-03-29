@@ -43,12 +43,20 @@ The following environment variables can be used to configure amneziawg-exporter.
 | AWG_EXPORTER_REDIS_DB                | 0                           | Redis server db number to store peers data                              |
 ## Metrics
 
-| Metric name                          | Labels               | Description                                                                 |
-|--------------------------------------|----------------------|-----------------------------------------------------------------------------|
-| awg_current_online                   |                      | Current number of online users.                                             |
-| awg_dau                              |                      | Daily active users.                                                         |
-| awg_mau                              |                      | Monthly active users.                                                       |
-| awg_status                           |                      | Exporter status. 1 - OK, 0 - not OK                                         |
+All metrics support additional dynamic labels configured via `AWG_EXPORTER_LABEL_*` environment variables.
+
+| Metric name                         | Type  | Labels  | Description                                         |
+|-------------------------------------|-------|---------|-----------------------------------------------------|
+| awg_status                          | Gauge |         | Exporter status. 1 — OK                             |
+| awg_current_online                  | Gauge |         | Current number of online users (last 5 minutes).    |
+| awg_dau                             | Gauge |         | Daily active users (last 24 hours).                 |
+| awg_mau                             | Gauge |         | Monthly active users (last 30 days).                |
+| awg_mau_abs                         | Gauge | `month` | Monthly active users from the 1st of current month. |
+| awg_total_rx_bytes                  | Gauge |         | Total bytes received from all peers.                |
+| awg_total_tx_bytes                  | Gauge |         | Total bytes sent to all peers.                      |
+| awg_peer_rx_bytes                   | Gauge | `peer`  | Bytes received from a specific peer.                |
+| awg_peer_tx_bytes                   | Gauge | `peer`  | Bytes sent to a specific peer.                      |
+| awg_peer_last_handshake_seconds     | Gauge | `peer`  | Last handshake Unix timestamp for a specific peer.  |
 
 ## Docker image
 

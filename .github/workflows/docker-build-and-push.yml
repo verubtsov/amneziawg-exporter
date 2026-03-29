@@ -2,8 +2,8 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   build-and-push:
@@ -28,7 +28,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker Image
         env:
           DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/amneziawg-exporter
-        run: make ci
+        run: make ci VERSION=${{ steps.version.outputs.VERSION }}

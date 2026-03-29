@@ -1,6 +1,6 @@
 .PHONY: all ci docker_build docker_push
 
-VERSION            := 3.2.1
+VERSION            ?= dev
 PROJECT_NAME       ?= amneziawg-exporter
 DOCKER_IMAGE       ?= $(PROJECT_NAME)
 DOCKER_TAG         ?= latest
