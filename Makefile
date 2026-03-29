@@ -1,7 +1,7 @@
 .PHONY: all ci docker_build docker_push
 
 VERSION            := 3.2.1
-PROJECT_NAME       ?= amneziavpn/amneziawg-exporter
+PROJECT_NAME       ?= amneziawg-exporter
 DOCKER_IMAGE       ?= $(PROJECT_NAME)
 DOCKER_TAG         ?= latest
 PLATFORMS          ?= linux/amd64,linux/arm64
