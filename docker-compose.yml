@@ -7,9 +7,11 @@ services:
     restart: unless-stopped
     volumes:
       - /usr/local/bin/awg:/usr/bin/awg
+      - /opt/amnezia/awg/clientsTable:/opt/amnezia/awg/clientsTable:ro
     environment:
       AWG_EXPORTER_REDIS_HOST: 127.0.0.1
       AWG_EXPORTER_INTERFACE: awg0
+      AWG_EXPORTER_CLIENTS_TABLE_FILE: /opt/amnezia/awg/clientsTable
     privileged: true
     network_mode: "container:amnezia-awg2"
 

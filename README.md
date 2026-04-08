@@ -11,7 +11,7 @@ AmneziaWG exporter is a Prometheus exporter for gathering AmneziaWG client conne
 
 ### Client identification
 
-amneziawg-exporter can optionally identify WireGuard clients using a client table. If this feature is enabled, clients are identified by their names; otherwise, they are marked as "unidentified."
+amneziawg-exporter identifies clients using AmneziaVPN's `clientsTable` JSON file. When `AWG_EXPORTER_CLIENTS_TABLE_FILE` is set (default: `/opt/amnezia/awg/clientsTable`), per-peer metrics include `client_name` and `public_key` labels. If the file is not found, metrics are still exported with empty `client_name` labels.
 
 ### Operating modes
 
@@ -41,6 +41,7 @@ The following environment variables can be used to configure amneziawg-exporter.
 | AWG_EXPORTER_REDIS_HOST              | localhost                   | Redis server host to store peers data                                   |
 | AWG_EXPORTER_REDIS_PORT              | 6379                        | Redis server port to store peers data                                   |
 | AWG_EXPORTER_REDIS_DB                | 0                           | Redis server db number to store peers data                              |
+| AWG_EXPORTER_CLIENTS_TABLE_FILE      | /opt/amnezia/awg/clientsTable | Path to AmneziaVPN clientsTable JSON file for client name resolution. |
 ## Metrics
 
 All metrics support additional dynamic labels configured via `AWG_EXPORTER_LABEL_*` environment variables.
@@ -54,9 +55,9 @@ All metrics support additional dynamic labels configured via `AWG_EXPORTER_LABEL
 | awg_mau_abs                         | Gauge | `month` | Monthly active users from the 1st of current month. |
 | awg_total_rx_bytes                  | Gauge |         | Total bytes received from all peers.                |
 | awg_total_tx_bytes                  | Gauge |         | Total bytes sent to all peers.                      |
-| awg_peer_rx_bytes                   | Gauge | `peer`  | Bytes received from a specific peer.                |
-| awg_peer_tx_bytes                   | Gauge | `peer`  | Bytes sent to a specific peer.                      |
-| awg_peer_last_handshake_seconds     | Gauge | `peer`  | Last handshake Unix timestamp for a specific peer.  |
+| awg_peer_rx_bytes                   | Gauge | `peer`, `public_key`, `client_name` | Bytes received from a specific peer.                |
+| awg_peer_tx_bytes                   | Gauge | `peer`, `public_key`, `client_name` | Bytes sent to a specific peer.                      |
+| awg_peer_last_handshake_seconds     | Gauge | `peer`, `public_key`, `client_name` | Last handshake Unix timestamp for a specific peer.  |
 
 ## Docker image
 
