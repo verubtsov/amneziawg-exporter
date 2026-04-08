@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     volumes:
       - /usr/local/bin/awg:/usr/bin/awg
+      - /etc/amnezia/amneziawg/awg0.conf:/etc/amnezia/amneziawg/awg0.conf:ro
     environment:
       AWG_EXPORTER_REDIS_HOST: 127.0.0.1
       AWG_EXPORTER_INTERFACE: awg0

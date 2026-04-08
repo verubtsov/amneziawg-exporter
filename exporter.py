@@ -110,6 +110,7 @@ class ExporterConfig:
     redis_port: int
     redis_db: int
     extra_labels: dict
+    awg_config_file: str
 
 
 class PersistenceWrapper:
@@ -211,6 +212,7 @@ class AwgShowWrapper:
             parts = line.split()
             if len(parts) >= 8:
                 peers.append({
+                    'public_key': parts[1],
                     'peer': parts[4],
                     'latest_handshake': parts[5],
                     'transfer_rx': int(parts[6]),
@@ -242,6 +244,46 @@ class AwgShowWrapper:
         return ''
 
 
+class AwgConfigParser:
+    """Parses awg config file to extract peer names from #_Name comments."""
+
+    def __init__(self, config_path: str):
+        self.config_path = config_path
+        self.log = MyLogger(self.__class__.__name__).logger
+        self._file_warned = False
+
+    def parse(self) -> dict:
+        """
+        Read the AWG config file and return a public_key -> client_name mapping.
+
+        Returns:
+            dict: Mapping of public key to client name. Empty dict on error.
+        """
+        try:
+            with open(self.config_path, 'r') as f:
+                content = f.read()
+        except (OSError, IOError) as e:
+            if not self._file_warned:
+                self.log.warning(f"Cannot read AWG config {self.config_path}: {e}")
+                self._file_warned = True
+            return {}
+        self._file_warned = False
+        mapping = {}
+        current_name = ''
+        for line in content.splitlines():
+            line = line.strip()
+            if line.startswith('#_Name'):
+                current_name = line.split('=', 1)[1].strip() if '=' in line else ''
+            elif line.startswith('PublicKey') and '=' in line:
+                pub_key = line.split('=', 1)[1].strip()
+                if pub_key and current_name:
+                    mapping[pub_key] = current_name
+                current_name = ''
+            elif line.startswith('[') and line != '[Peer]':
+                current_name = ''
+        return mapping
+
+
 class Exporter:
     """Prometheus exporter that collects and exposes metrics based on AWG output."""
 
@@ -257,8 +299,10 @@ class Exporter:
         self.registry = CollectorRegistry()
         self.storage = PersistenceWrapper(config.redis_host, config.redis_port, config.redis_db)
         self.awg_show_command = config.awg_executable.split()
+        self.config_parser = AwgConfigParser(config.awg_config_file)
         labels = list(config.extra_labels.keys())
         self.has_labels = True if len(labels) > 0 else False
+        peer_labels = ['peer', 'public_key', 'client_name']
         self.metrics = {
             'online': Gauge('awg_current_online', 'Online users', labels, registry=self.registry),
             'dau': Gauge('awg_dau', 'Daily Active Users', labels, registry=self.registry),
@@ -267,9 +311,9 @@ class Exporter:
             'status': Gauge('awg_status', 'Exporter status', labels, registry=self.registry)
         }
         self.peer_metrics = {
-            'peer_rx_bytes':       Gauge('awg_peer_rx_bytes', 'Bytes received from peer', ['peer'] + labels, registry=self.registry),
-            'peer_tx_bytes':       Gauge('awg_peer_tx_bytes', 'Bytes sent to peer', ['peer'] + labels, registry=self.registry),
-            'peer_last_handshake': Gauge('awg_peer_last_handshake_seconds', 'Last handshake Unix timestamp', ['peer'] + labels, registry=self.registry),
+            'peer_rx_bytes':       Gauge('awg_peer_rx_bytes', 'Bytes received from peer', peer_labels + labels, registry=self.registry),
+            'peer_tx_bytes':       Gauge('awg_peer_tx_bytes', 'Bytes sent to peer', peer_labels + labels, registry=self.registry),
+            'peer_last_handshake': Gauge('awg_peer_last_handshake_seconds', 'Last handshake Unix timestamp', peer_labels + labels, registry=self.registry),
             'total_rx_bytes':      Gauge('awg_total_rx_bytes', 'Total bytes received from all peers', labels, registry=self.registry),
             'total_tx_bytes':      Gauge('awg_total_tx_bytes', 'Total bytes sent to all peers', labels, registry=self.registry),
         }
@@ -300,10 +344,19 @@ class Exporter:
         """
         output = AwgShowWrapper.run_bin(self.awg_show_command)
         peers = AwgShowWrapper.parse(output)
+        name_map = self.config_parser.parse()
+        for key in ['peer_rx_bytes', 'peer_tx_bytes', 'peer_last_handshake']:
+            self.peer_metrics[key]._metrics.clear()
         for peer in peers:
             if peer.get('latest_handshake') != '0':
                 self.storage.update_peer(peer['peer'], peer['latest_handshake'])
-            lbl = {'peer': peer['peer'], **self.config.extra_labels} if self.has_labels else {'peer': peer['peer']}
+            pub_key = peer.get('public_key', '')
+            peer_lbl = {
+                'peer': peer['peer'],
+                'public_key': pub_key,
+                'client_name': name_map.get(pub_key, ''),
+            }
+            lbl = {**peer_lbl, **self.config.extra_labels} if self.has_labels else peer_lbl
             self.peer_metrics['peer_rx_bytes'].labels(**lbl).set(peer['transfer_rx'])
             self.peer_metrics['peer_tx_bytes'].labels(**lbl).set(peer['transfer_tx'])
             self.peer_metrics['peer_last_handshake'].labels(**lbl).set(int(peer['latest_handshake']))
@@ -357,7 +410,8 @@ def main():
         redis_host=raw.get('AWG_EXPORTER_REDIS_HOST', 'localhost'),
         redis_port=int(raw.get('AWG_EXPORTER_REDIS_PORT', 6379)),
         redis_db=int(raw.get('AWG_EXPORTER_REDIS_DB', 0)),
-        extra_labels=raw.discovery('AWG_EXPORTER_EXTRA_LABEL_')
+        extra_labels=raw.discovery('AWG_EXPORTER_EXTRA_LABEL_'),
+        awg_config_file=raw.get('AWG_EXPORTER_AWG_CONFIG_FILE', '/etc/amnezia/amneziawg/awg0.conf')
     )
 
     logger = MyLogger("Main").logger
